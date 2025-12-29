@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>울산대학교 미세먼지 모니터링</title>
     <style>
         body {
@@ -10,62 +10,86 @@
             display: flex; justify-content: center; align-items: center;
             min-height: 100vh; background-color: #1a1a1a;
             font-family: 'Pretendard', sans-serif;
+            overflow: hidden; /* 모바일에서 불필요한 스크롤 방지 */
         }
 
+        /* 메인 컨테이너: 화면 너비에 맞게 자동 조절 */
         .map-container {
             position: relative;
-            width: 95vw; max-width: 1100px;
-            border: 10px solid #fff;
-            border-radius: 24px; overflow: hidden;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+            width: 100vw; 
+            max-width: 800px; /* PC에서도 너무 커지지 않게 제한 */
+            aspect-ratio: 1080 / 761; /* 원본 이미지 비율 유지 (짤림 방지) */
+            background-color: #fff;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
-        .campus-img { width: 100%; display: block; }
+        .campus-img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+        }
 
+        /* 위젯 공통 스타일: 모바일에서는 크기를 조금 줄임 */
         .sensor-widget {
             position: absolute;
             background: rgba(255, 255, 255, 0.95);
-            padding: 12px 18px;
-            border-radius: 15px;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            padding: 2% 3%; /* 패딩을 퍼센트로 설정 */
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             text-align: center;
-            min-width: 110px;
+            min-width: 80px;
             z-index: 10;
+            pointer-events: none; /* 클릭 간섭 방지 */
         }
 
-        /* 위젯 위치 */
+        /* 위치 좌표 (반응형 퍼센트) */
         #widget-mech-2 { top: 17%; left: 45%; }
         #widget-dorm { top: 14%; left: 77%; }
 
-        /* 비활성화된 위젯 스타일 (생활관용) */
-        .sensor-widget.disabled {
-            background: rgba(230, 230, 230, 0.9);
-            border: 1px dashed #aaa;
-        }
-
         .location-label {
-            font-size: 12px; font-weight: 700; color: #fff;
-            background: #333; padding: 4px 8px; border-radius: 5px;
-            margin-bottom: 8px; display: inline-block;
+            font-size: 2.5vw; /* 화면 너비에 비례한 글자 크기 */
+            max-size: 12px;
+            font-weight: 700; color: #fff;
+            background: #333; padding: 2px 6px; border-radius: 4px;
+            margin-bottom: 5px; display: inline-block;
+            white-space: nowrap;
         }
 
-        .dust-value { font-size: 30px; font-weight: 900; line-height: 1; }
-        .unit { font-size: 11px; color: #777; margin-top: 4px; display: block; }
+        /* 기계관 전용 (작동) */
+        .dust-value { 
+            font-size: 6vw; 
+            max-font-size: 28px;
+            font-weight: 900; line-height: 1; 
+        }
+        .unit { font-size: 2vw; color: #777; display: block; }
 
         /* 상태 색상 */
         .good { color: #27ae60; }
-        .offline { color: #888; } /* 꺼짐 상태 색상 */
+        .normal { color: #f39c12; }
+        .bad { color: #e74c3c; }
+        .offline { color: #888; }
 
-        /* 상태 점 */
-        .live-dot {
-            display: inline-block; width: 7px; height: 7px;
-            border-radius: 50%; background-color: #ff4757;
-            margin-right: 4px;
+        /* 라이브 상태 바닥글 */
+        .status-footer {
+            font-size: 1.8vw;
+            color: #999;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .off-dot {
-            display: inline-block; width: 7px; height: 7px;
-            border-radius: 50%; background-color: #888;
-            margin-right: 4px;
+
+        .live-dot { width: 5px; height: 5px; border-radius: 50%; background-color: #ff4757; margin-right: 3px; }
+        .off-dot { width: 5px; height: 5px; border-radius: 50%; background-color: #888; margin-right: 3px; }
+
+        /* PC 버전 글자 크기 보정 */
+        @media (min-width: 800px) {
+            .location-label { font-size: 11px; }
+            .dust-value { font-size: 24px; }
+            .unit { font-size: 10px; }
+            .status-footer { font-size: 9px; }
+            .live-dot, .off-dot { width: 7px; height: 7px; }
         }
     </style>
 </head>
@@ -78,40 +102,33 @@
         <div class="location-label">기계관 2호관</div>
         <div class="dust-value"><span class="num">--</span></div>
         <span class="unit">µg/m³</span>
-        <div style="font-size: 9px; color: #999; margin-top: 8px;"><span class="live-dot"></span>센서 가동 중</div>
+        <div class="status-footer"><span class="live-dot"></span>ON</div>
     </div>
 
-    <div class="sensor-widget disabled" id="widget-dorm">
+    <div class="sensor-widget" id="widget-dorm" style="background: rgba(230,230,230,0.9); border: 1px dashed #aaa;">
         <div class="location-label" style="background: #777;">학생생활관</div>
-        <div class="dust-value offline">--</div>
-        <span class="unit" style="color: #aaa;">데이터 없음</span>
-        <div style="font-size: 9px; color: #777; margin-top: 8px;"><span class="off-dot"></span>센서 꺼짐</div>
+        <div class="dust-value offline" style="font-size: 4vw;">OFF</div>
+        <div class="status-footer"><span class="off-dot"></span>센서 꺼짐</div>
     </div>
 </div>
 
 <script>
-    // 기계관 수치만 업데이트하는 함수
     function updateMechSensor() {
         const widget = document.getElementById('widget-mech-2');
         const numDisplay = widget.querySelector('.num');
         const valueDiv = widget.querySelector('.dust-value');
 
-        // 10 ~ 30 사이의 랜덤 수치
         const val = Math.floor(Math.random() * 21) + 10;
         numDisplay.innerText = val;
 
-        // 색상 판정
         valueDiv.classList.remove('good', 'normal', 'bad');
         if (val <= 15) valueDiv.classList.add('good');
         else if (val <= 35) valueDiv.classList.add('normal');
         else valueDiv.classList.add('bad');
     }
 
-    // 초기 실행
     updateMechSensor();
-
-    // 5초마다 기계관만 갱신 (생활관은 호출하지 않음)
-    setInterval(updateMechSensor, 3000);
+    setInterval(updateMechSensor, 5000);
 </script>
 
 </body>
