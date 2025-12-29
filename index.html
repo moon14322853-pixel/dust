@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>울산대학교 미세먼지 모니터링</title>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; background-color: #1a1a1a;
+            font-family: 'Pretendard', sans-serif;
+        }
+
+        .map-container {
+            position: relative;
+            width: 95vw; max-width: 1100px;
+            border: 10px solid #fff;
+            border-radius: 24px; overflow: hidden;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+        }
+
+        .campus-img { width: 100%; display: block; }
+
+        .sensor-widget {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 18px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            text-align: center;
+            min-width: 110px;
+            z-index: 10;
+        }
+
+        /* 위젯 위치 */
+        #widget-mech-2 { top: 17%; left: 45%; }
+        #widget-dorm { top: 14%; left: 77%; }
+
+        /* 비활성화된 위젯 스타일 (생활관용) */
+        .sensor-widget.disabled {
+            background: rgba(230, 230, 230, 0.9);
+            border: 1px dashed #aaa;
+        }
+
+        .location-label {
+            font-size: 12px; font-weight: 700; color: #fff;
+            background: #333; padding: 4px 8px; border-radius: 5px;
+            margin-bottom: 8px; display: inline-block;
+        }
+
+        .dust-value { font-size: 30px; font-weight: 900; line-height: 1; }
+        .unit { font-size: 11px; color: #777; margin-top: 4px; display: block; }
+
+        /* 상태 색상 */
+        .good { color: #27ae60; }
+        .offline { color: #888; } /* 꺼짐 상태 색상 */
+
+        /* 상태 점 */
+        .live-dot {
+            display: inline-block; width: 7px; height: 7px;
+            border-radius: 50%; background-color: #ff4757;
+            margin-right: 4px;
+        }
+        .off-dot {
+            display: inline-block; width: 7px; height: 7px;
+            border-radius: 50%; background-color: #888;
+            margin-right: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="map-container">
+    <img src="https://i.namu.wiki/i/tP7AZXrxwdRTnP5oFwAX7lpi1M9o2kusEPL8mLNwTgN6nYDmvKi8Oe8d_NESrDfEstCDy9-w0e5bVF9djUiImA.webp" alt="울산대학교 캠퍼스맵" class="campus-img">
+
+    <div class="sensor-widget" id="widget-mech-2">
+        <div class="location-label">기계관 2호관</div>
+        <div class="dust-value"><span class="num">--</span></div>
+        <span class="unit">µg/m³</span>
+        <div style="font-size: 9px; color: #999; margin-top: 8px;"><span class="live-dot"></span>센서 가동 중</div>
+    </div>
+
+    <div class="sensor-widget disabled" id="widget-dorm">
+        <div class="location-label" style="background: #777;">학생생활관</div>
+        <div class="dust-value offline">--</div>
+        <span class="unit" style="color: #aaa;">데이터 없음</span>
+        <div style="font-size: 9px; color: #777; margin-top: 8px;"><span class="off-dot"></span>센서 꺼짐</div>
+    </div>
+</div>
+
+<script>
+    // 기계관 수치만 업데이트하는 함수
+    function updateMechSensor() {
+        const widget = document.getElementById('widget-mech-2');
+        const numDisplay = widget.querySelector('.num');
+        const valueDiv = widget.querySelector('.dust-value');
+
+        // 10 ~ 30 사이의 랜덤 수치
+        const val = Math.floor(Math.random() * 21) + 10;
+        numDisplay.innerText = val;
+
+        // 색상 판정
+        valueDiv.classList.remove('good', 'normal', 'bad');
+        if (val <= 15) valueDiv.classList.add('good');
+        else if (val <= 35) valueDiv.classList.add('normal');
+        else valueDiv.classList.add('bad');
+    }
+
+    // 초기 실행
+    updateMechSensor();
+
+    // 5초마다 기계관만 갱신 (생활관은 호출하지 않음)
+    setInterval(updateMechSensor, 5000);
+</script>
+
+</body>
+</html>
