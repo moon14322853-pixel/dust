@@ -3,132 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>울산대학교 미세먼지 모니터링</title>
+    <title>울산대학교 미세먼지 & 그린 모니터링</title>
     <style>
+        :root {
+            --bg-color: #f0f2f5;
+            --text-main: #1d1d1f;
+            --accent-green: #00b894;
+            --accent-blue: #0984e3;
+            --white-alpha: rgba(255, 255, 255, 0.9);
+        }
+
         body {
             margin: 0; padding: 0;
             display: flex; justify-content: center; align-items: center;
-            min-height: 100vh; background-color: #1a1a1a;
-            font-family: 'Pretendard', sans-serif;
-            overflow: hidden; /* 모바일에서 불필요한 스크롤 방지 */
+            min-height: 100vh; background-color: var(--bg-color);
+            font-family: 'Pretendard', -apple-system, sans-serif;
         }
 
-        /* 메인 컨테이너: 화면 너비에 맞게 자동 조절 */
-        .map-container {
+        .dashboard {
             position: relative;
-            width: 100vw; 
-            max-width: 800px; /* PC에서도 너무 커지지 않게 제한 */
-            aspect-ratio: 1080 / 761; /* 원본 이미지 비율 유지 (짤림 방지) */
+            width: 95vw; max-width: 1000px;
+            aspect-ratio: 16 / 10; /* 하단 대시보드 공간을 위해 비율 살짝 조정 */
             background-color: #fff;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            border: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
         }
 
-        .campus-img {
-            width: 100%;
-            height: 100%;
-            display: block;
-            object-fit: contain;
+        /* 상단 맵 영역 */
+        .map-section {
+            position: relative;
+            flex: 1;
+            overflow: hidden;
         }
 
-        /* 위젯 공통 스타일: 모바일에서는 크기를 조금 줄임 */
-        .sensor-widget {
+        .map-bg {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            filter: blur(1.5px) brightness(1.05);
+            transform: scale(1.02);
+        }
+
+        /* 좌측 상단 타이틀 */
+        .header {
+            position: absolute;
+            top: 20px; left: 20px;
+            z-index: 30;
+            background: var(--white-alpha);
+            padding: 12px 20px;
+            border-radius: 14px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+        
+        .header h1 {
+            margin: 0; font-size: 16px; font-weight: 800;
+            color: var(--text-main); line-height: 1.2;
+        }
+
+        .header .author {
+            display: block; margin-top: 4px;
+            font-size: 10px; font-weight: 600; color: #95a5a6;
+        }
+
+        /* 위젯 디자인 */
+        .widget {
             position: absolute;
             background: rgba(255, 255, 255, 0.95);
-            padding: 2% 3%; /* 패딩을 퍼센트로 설정 */
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            text-align: center;
-            min-width: 80px;
-            z-index: 10;
-            pointer-events: none; /* 클릭 간섭 방지 */
+            backdrop-filter: blur(10px);
+            padding: 15px;
+            border-radius: 18px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            min-width: 110px;
+            border: 1px solid #fff;
+            z-index: 40;
         }
 
-        /* 위치 좌표 (반응형 퍼센트) */
-        #widget-mech-2 { top: 17%; left: 45%; }
-        #widget-dorm { top: 14%; left: 77%; }
+        #mech-2 { top: 25%; left: 45%; }
+        #dorm { top: 15%; left: 72%; }
 
-        .location-label {
-            font-size: 2.5vw; /* 화면 너비에 비례한 글자 크기 */
-            max-size: 12px;
-            font-weight: 700; color: #fff;
-            background: #333; padding: 2px 6px; border-radius: 4px;
-            margin-bottom: 5px; display: inline-block;
-            white-space: nowrap;
-        }
+        .label { font-size: 10px; font-weight: 700; color: #636e72; margin-bottom: 5px; display: block; }
+        .value-group { display: flex; align-items: baseline; gap: 3px; }
+        .value { font-size: 28px; font-weight: 900; }
+        .unit { font-size: 11px; font-weight: 600; color: #b2bec3; }
 
-        /* 기계관 전용 (작동) */
-        .dust-value { 
-            font-size: 6vw; 
-            max-font-size: 28px;
-            font-weight: 900; line-height: 1; 
-        }
-        .unit { font-size: 2vw; color: #777; display: block; }
-
-        /* 상태 색상 */
-        .good { color: #27ae60; }
-        .normal { color: #f39c12; }
-        .bad { color: #e74c3c; }
-        .offline { color: #888; }
-
-        /* 라이브 상태 바닥글 */
-        .status-footer {
-            font-size: 1.8vw;
-            color: #999;
-            margin-top: 5px;
+        /* 하단 그린 대시보드 영역 */
+        .green-footer {
+            background: #fff;
+            padding: 15px 25px;
+            border-top: 1px solid #eee;
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 15px;
+            z-index: 50;
         }
 
-        .live-dot { width: 5px; height: 5px; border-radius: 50%; background-color: #ff4757; margin-right: 3px; }
-        .off-dot { width: 5px; height: 5px; border-radius: 50%; background-color: #888; margin-right: 3px; }
+        .green-icon {
+            font-size: 30px;
+            background: #f0fff4;
+            width: 50px; height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 15px;
+        }
 
-        /* PC 버전 글자 크기 보정 */
-        @media (min-width: 800px) {
-            .location-label { font-size: 11px; }
-            .dust-value { font-size: 24px; }
-            .unit { font-size: 10px; }
-            .status-footer { font-size: 9px; }
-            .live-dot, .off-dot { width: 7px; height: 7px; }
+        .green-content h3 {
+            margin: 0; font-size: 14px; color: var(--text-main); font-weight: 800;
+        }
+
+        .green-content p {
+            margin: 3px 0 0; font-size: 12px; color: #636e72; font-weight: 500;
+        }
+
+        #tree-count { color: var(--accent-green); font-weight: 800; }
+
+        @media (max-width: 600px) {
+            .dashboard { aspect-ratio: 1 / 1.2; }
+            .green-footer { padding: 12px 15px; gap: 10px; }
+            .green-icon { width: 40px; height: 40px; font-size: 24px; }
+            .green-content h3 { font-size: 13px; }
+            .green-content p { font-size: 11px; }
         }
     </style>
 </head>
 <body>
 
-<div class="map-container">
-    <img src="https://i.namu.wiki/i/tP7AZXrxwdRTnP5oFwAX7lpi1M9o2kusEPL8mLNwTgN6nYDmvKi8Oe8d_NESrDfEstCDy9-w0e5bVF9djUiImA.webp" alt="울산대학교 캠퍼스맵" class="campus-img">
+<div class="dashboard">
+    <div class="map-section">
+        <div class="header">
+            <h1>울산대학교<br><span style="color:var(--accent-green)">미세먼지 모니터링</span></h1>
+            <span class="author">by ZeroZero</span>
+        </div>
 
-    <div class="sensor-widget" id="widget-mech-2">
-        <div class="location-label">기계관 2호관</div>
-        <div class="dust-value"><span class="num">--</span></div>
-        <span class="unit">µg/m³</span>
-        <div class="status-footer"><span class="live-dot"></span>ON</div>
+        <img src="https://i.imgur.com/wRrfIRN.png" alt="Campus Map" class="map-bg">
+
+        <div class="widget" id="mech-2">
+            <span class="label">기계관 2호관</span>
+            <div class="value-group">
+                <span class="value" id="val-num" style="color: var(--accent-green);">--</span>
+                <span class="unit">µg/m³</span>
+            </div>
+        </div>
+
+        <div class="widget" id="dorm" style="opacity: 0.7;">
+            <span class="label">학생생활관</span>
+            <div class="value-group">
+                <span class="value" style="color: #b2bec3;">OFF</span>
+            </div>
+        </div>
     </div>
 
-    <div class="sensor-widget" id="widget-dorm" style="background: rgba(230,230,230,0.9); border: 1px dashed #aaa;">
-        <div class="location-label" style="background: #777;">학생생활관</div>
-        <div class="dust-value offline" style="font-size: 4vw;">OFF</div>
-        <div class="status-footer"><span class="off-dot"></span>센서 꺼짐</div>
+    <div class="green-footer">
+        <div class="green-icon" id="green-emoji">🌳</div>
+        <div class="green-content">
+            <h3 id="green-title">오늘의 에코 지수</h3>
+            <p id="green-msg">데이터를 분석 중입니다...</p>
+        </div>
     </div>
 </div>
 
 <script>
-    function updateMechSensor() {
-        const widget = document.getElementById('widget-mech-2');
-        const numDisplay = widget.querySelector('.num');
-        const valueDiv = widget.querySelector('.dust-value');
+    function updateData() {
+        const valNum = document.getElementById('val-num');
+        const greenMsg = document.getElementById('green-msg');
+        const greenEmoji = document.getElementById('green-emoji');
+        const greenTitle = document.getElementById('green-title');
 
-        const val = Math.floor(Math.random() * 21) + 10;
-        numDisplay.innerText = val;
-
-        valueDiv.classList.remove('good', 'normal', 'bad');
-        if (val <= 15) valueDiv.classList.add('good');
-        else if (val <= 35) valueDiv.classList.add('normal');
-        else valueDiv.classList.add('bad');
+        // 가상 수치 생성
+        const val = Math.floor(Math.random() * 25) + 5; 
+        valNum.innerText = val;
+        
+        // 상태별 로직
+        if(val <= 15) {
+            valNum.style.color = "#00b894";
+            greenEmoji.innerText = "🌳";
+            greenEmoji.style.background = "#f0fff4";
+            greenTitle.innerText = "좋은 수준의 공기";
+            greenMsg.innerHTML = `현재 울산대 나무들이 많은 공기를 정화하고 있습니다.`;
+        } else if(val <= 35) {
+            valNum.style.color = "#fdcb6e";
+            greenEmoji.innerText = "🍃";
+            greenEmoji.style.background = "#fffdeb";
+            greenTitle.innerText = "보통 수준의 공기";
+            greenMsg.innerHTML = `나무들이 열심히 일하고 있어요! 산책하기에 적당한 날씨입니다.`;
+        } else {
+            valNum.style.color = "#d63031";
+            greenEmoji.innerText = "😷";
+            greenEmoji.style.background = "#fff5f5";
+            greenTitle.innerText = "공기 정화가 필요해요";
+            greenMsg.innerHTML = `현재 미세먼지가 많아 나무들이 힘들어하고 있습니다. 마스크를 챙기세요!`;
+        }
     }
 
-    updateMechSensor();
-    setInterval(updateMechSensor, 5000);
+    setInterval(updateData, 5000);
+    updateData();
 </script>
 
 </body>
